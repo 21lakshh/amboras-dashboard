@@ -1,10 +1,17 @@
 # Store Analytics Dashboard
 
+## Repository Structure
+
+This project is a monorepo powered by [Turborepo](https://turbo.build/) using `pnpm` workspaces.
+
+- `apps/frontend`: Next.js web application.
+- `apps/backend`: NestJS API and websocket server.
+- `packages/`: Intended for shared configurations or UI libraries.
+
 ## Setup Instructions
-1. Install dependencies.
+1. Install dependencies from the root directory.
    ```bash
-   cd frontend && pnpm install
-   cd backend && pnpm install
+   pnpm install
    ```
 2. Start Redis locally with Docker.
    ```bash
@@ -22,36 +29,23 @@
    - Use the pooler connection string if your local machine has trouble resolving the direct DB host.
 4. Create env files from the examples.
    ```bash
-   cp frontend/.env.example frontend/.env
-   cp backend/.env.example backend/.env
+   cp apps/frontend/.env.example apps/frontend/.env
+   cp apps/backend/.env.example apps/backend/.env
    ```
 5. Fill the envs.
     - Frontend needs the Supabase URL, anon key, and backend base URL.
     - Backend needs the frontend URL, Supabase URL, Postgres `DATABASE_URL`, Redis URL, ingest key, and optionally `AUTH_STORE_CONTEXT_TTL_SECONDS` for Redis-backed auth/store-context caching.
-6. Start the backend. The backend bootstrap creates the public `users`, `stores`, and `analytics_events` tables plus indexes automatically.
+6. Start the development servers simultaneously. The backend bootstrap creates the public `users`, `stores`, and `analytics_events` tables plus indexes automatically.
    ```bash
-   cd backend
-   pnpm start:dev
+   pnpm run dev
    ```
-7. Start the frontend.
-   ```bash
-   cd frontend
-   pnpm dev --port 3000
-   ```
-8. Sign up from the UI.
+7. Sign up from the UI.
    - Signup/login triggers `POST /api/v1/auth/bootstrap`.
    - The backend auto-provisions a `users` row and a default store for the authenticated owner.
-9. Run verification scenarios.
+8. Run verification scenarios.
    - Static correctness check. This confirms the code compiles before trying runtime scenarios.
-     Frontend:
      ```bash
-     cd frontend
-     pnpm exec next build --webpack
-     ```
-     Backend:
-     ```bash
-     cd backend
-     pnpm build
+     pnpm run build
      ```
    - Dashboard bootstrap check. This validates auth, SSR, and auto-provisioning.
      1. Open `http://localhost:3000`.
@@ -65,7 +59,7 @@
      - log in once so the user/store is auto-provisioned
      - use that same Supabase user UUID in the command below
      ```bash
-     cd backend
+     cd apps/backend
      pnpm load:analytics -- --user-id YOUR_SUPABASE_USER_ID --ingest-key YOUR_INGEST_KEY --rate-per-minute 1200 --duration-seconds 30 --concurrency 25
      ```
      What this tests:
@@ -79,7 +73,7 @@
      - recent activity keeps showing the newest 20 events
    - Assignment-style multi-store stream at 10,000 events/minute across all stores. This simulates the challenge’s total system load, not just one owner dashboard.
      ```bash
-     cd backend
+     cd apps/backend
      export DATABASE_URL='YOUR_DATABASE_URL'
      pnpm load:analytics -- --store-count 25 --seed-stores --ingest-key YOUR_INGEST_KEY --rate-per-minute 10000 --duration-seconds 60 --concurrency 100
      ```
@@ -94,12 +88,12 @@
    - Mixed traffic in two terminals. This combines a focused live-dashboard test with system-wide background load.
      Terminal 1:
      ```bash
-     cd backend
+     cd apps/backend
      pnpm load:analytics -- --user-id YOUR_SUPABASE_USER_ID --ingest-key YOUR_INGEST_KEY --rate-per-minute 1200 --duration-seconds 30 --concurrency 25
      ```
      Terminal 2:
      ```bash
-     cd backend
+     cd apps/backend
      export DATABASE_URL='YOUR_DATABASE_URL'
      pnpm load:analytics -- --store-count 25 --seed-stores --ingest-key YOUR_INGEST_KEY --rate-per-minute 10000 --duration-seconds 60 --concurrency 100
      ```
